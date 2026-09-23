@@ -6,7 +6,8 @@ codeunit 87505 "LAA_LedgerApplInstall"
     trigger OnInstallAppPerCompany()
     begin
         fInitializeSetup();
-        fRegisterAIConfiguration();
+        // Disabled in the no-AI variant: there is no agent framework to register into.
+        // fRegisterAIConfiguration();
     end;
 
     /// <summary>
@@ -20,6 +21,17 @@ codeunit 87505 "LAA_LedgerApplInstall"
         rlSetup.fGetSetup();
     end;
 
+    // ========================================================================
+    // DISABLED IN THE NO-AI VARIANT OF THIS EXTENSION.
+    //
+    // fRegisterAIConfiguration registered the agent, capability, prompt, tool
+    // and workflow in the Deloitte "AI Integration" framework, which this
+    // variant does not declare as a dependency. Its only callers - the install
+    // trigger above, LAA_LedgerApplUpgrade and the setup page action - are
+    // commented out as well. Restore by re-adding the dependency and removing
+    // the /* ... */ markers.
+    // ========================================================================
+    /*
     /// <summary>
     /// Registers the AI agent, capability, prompt, tool and workflow in the agent
     /// framework. Shared by the install trigger, the upgrade codeunit and the
@@ -32,4 +44,5 @@ codeunit 87505 "LAA_LedgerApplInstall"
     begin
         clAIMatchMgt.fRegisterAIConfiguration();
     end;
+    */
 }

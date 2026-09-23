@@ -11,7 +11,10 @@ Generates, reviews and posts application proposals for open customer and vendor 
 - Language: AL
 
 ## Dependencies
-- `AI Integration` (Deloitte, `a97d6237-e1cd-4234-99c4-a578251c3b40`, 28.0.3.11) — the agent framework, used only by the AI matching layer in `src/ai/`.
+None. This is the **no-AI variant** of the extension: the `AI Integration` dependency
+(Deloitte, `a97d6237-e1cd-4234-99c4-a578251c3b40`) has been removed from `app.json`, and
+every object and call site that bound to it is commented out rather than deleted. Do not
+re-introduce the dependency or uncomment the AI layer on this branch.
 
 ## Documentation language
 English. Captions, tooltips and labels carry a Spanish translation in `Comment = 'ESP="..."'`.
@@ -25,7 +28,7 @@ English. Captions, tooltips and labels carry a Spanish translation in `Comment =
 | Pages `87500–87504` | `LAA_LedgerApplSetup`, `LAA_LedgerApplProposalList`, `LAA_LedgerApplProposalLines`, `LAA_ApplEntryCandidates` (87502 is free — the proposal card was removed) |
 | PageExtensions `87510–87511` | `LAA_CustLedgerEntriesExt` (page 25), `LAA_VendLedgerEntriesExt` (page 29) |
 | PermissionSets `87500–87501` | `LAA_Admin`, `LAA_User` |
-| AI layer, `src/ai/` | Codeunits `87506–87510`: `LAA_AIMatchMgt`, `LAA_AIMatchContext`, `LAA_AIMatchCapability`, `LAA_AIMatchAgent`, `LAA_AIMatchTool`. EnumExtensions `87517–87519` on `AI Agent`, `AI Capability`, `AI Tool Implementation` |
+| AI layer, `src/ai/` | **Commented out in this variant.** Codeunits `87506–87510` and EnumExtensions `87517–87519`. IDs stay reserved so the layer can be restored unchanged |
 
 ## Architecture rules
 These are the load-bearing decisions. Do not work around them.
@@ -77,8 +80,19 @@ Do not "fix" these by adding them — they were excluded by design:
 - Event subscribers for obsolescence — the two source markers are enough.
 - Automatic repair or regeneration of an obsolete proposal.
 
-## The AI matching layer (`src/ai/`)
-Implemented. It runs between the AI candidate classification and the residual FIFO, and is off until `Enable AI Matching` is switched on in the setup.
+## The AI matching layer (`src/ai/`) — DISABLED IN THIS VARIANT
+The whole layer is commented out and the dependency is gone. What follows describes it as
+it exists in the AI variant, kept so the layer can be restored faithfully; none of it runs
+here. What is disabled: all of `src/ai/`, `fRegisterAIConfiguration` in
+`LAA_LedgerApplInstall` and its callers (`LAA_LedgerApplUpgrade`, the **Register AI
+Assistant** setup action), the Level 6 region and its call site in `LAA_LedgerApplMatching`,
+the `AI Matching` setup group, and the `AI Agents Framework` grant plus the five AI codeunit
+grants in both permission sets.
+
+What deliberately stays live: the `LAA_AICandidateType` enum and the `AI Candidate Type`
+field (Level 5 only labels what the deterministic levels could not resolve — it calls no
+model), `LAA_MatchMethod::"AI Assisted"`, and the four setup fields, so the table schema is
+unchanged between the two variants.
 
 - **The deterministic engine is the owner, the AI is a guest.** `fGenerateProposal` calls `fAIMatching` and nothing else changes. A case the AI does not resolve costs nothing: the movements stay available and FIFO runs exactly as before.
 - **`fGenerateProposal` runs in two passes.** All deterministic levels for every currency, then the AI pass, then FIFO for every currency. The AI pass has to `Commit()` — an LLM call is an HTTP callout — so it must never be interleaved with FIFO. Currencies never interact, so the split changes no result. Do not merge the loops back.
@@ -91,7 +105,11 @@ Implemented. It runs between the AI candidate classification and the residual FI
 - No new tables, no new pages, no new enum values on LAA's own enums: `LAA_MatchMethod::"AI Assisted"` already existed. The only schema growth is four setup fields.
 
 ## Building locally
-`.alpackages` holds the BC 28.4 symbol packages plus `Deloitte_AI Integration`, `Deloitte_INT-Interfaces` and `Microsoft_Error Messages with Recommendations` (git-ignored). The project compiles clean with CodeCop, UICop and PerTenantExtensionCop against `.vscode/_BC.ruleset.json`.
+`.alpackages` holds the BC 28.4 symbol packages plus `Deloitte_INT-Interfaces` and
+`Microsoft_Error Messages with Recommendations` (git-ignored). This variant does **not**
+need `Deloitte_AI Integration`; if the file is still in your local `.alpackages` it is
+unused and can be deleted. The project compiles clean with CodeCop, UICop and
+PerTenantExtensionCop against `.vscode/_BC.ruleset.json`.
 
 ## Reference
 Corporate standards, reusable prompts and personas come from the shared plugin and apply automatically:

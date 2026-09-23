@@ -1,12 +1,12 @@
 /// <summary>
 /// Reapplies the idempotent configuration on every upgrade of this extension.
 ///
-/// It exists for the AI layer. The install trigger only runs on a first install,
-/// and the agent framework raises its own installation events only when the
-/// framework itself is installed or upgraded - never when a dependent extension
-/// is. Without this codeunit, an environment that already had version 28.0.1.0
-/// would upgrade to the AI version and still have no agent, no capability and no
-/// workflow.
+/// In the AI variant it existed for the AI layer: the install trigger only runs
+/// on a first install, and the agent framework raises its own installation
+/// events only when the framework itself is installed or upgraded - never when
+/// a dependent extension is. In this no-AI variant there is no agent to
+/// register, so the codeunit is kept only to guarantee that the singleton setup
+/// record exists after an upgrade.
 /// </summary>
 codeunit 87511 "LAA_LedgerApplUpgrade"
 {
@@ -18,6 +18,7 @@ codeunit 87511 "LAA_LedgerApplUpgrade"
         clInstall: Codeunit "LAA_LedgerApplInstall";
     begin
         clInstall.fInitializeSetup();
-        clInstall.fRegisterAIConfiguration();
+        // Disabled in the no-AI variant: see LAA_LedgerApplInstall.
+        // clInstall.fRegisterAIConfiguration();
     end;
 }

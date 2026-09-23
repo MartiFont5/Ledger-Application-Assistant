@@ -7,10 +7,13 @@ permissionset 87500 "LAA_Admin"
     Assignable = true;
     Access = Public;
 
-    // The AI matching layer runs the Deloitte AI Integration framework in the
-    // session of the user who generates the proposal, so it needs the permission
-    // set that framework publishes for its consumers.
-    IncludedPermissionSets = "AI Agents Framework";
+    // DISABLED IN THE NO-AI VARIANT OF THIS EXTENSION.
+    //
+    // The AI matching layer ran the Deloitte AI Integration framework in the
+    // session of the user who generates the proposal, so it needed the permission
+    // set that framework publishes for its consumers. This variant does not
+    // declare that dependency, so the permission set does not exist here.
+    // IncludedPermissionSets = "AI Agents Framework";
 
     Permissions =
         tabledata "LAA_LedgerApplSetup" = RIMD,
@@ -31,10 +34,12 @@ permissionset 87500 "LAA_Admin"
         codeunit "LAA_LedgerApplPostGroup" = X,
         codeunit "LAA_LedgerApplEntityMgt" = X,
         codeunit "LAA_LedgerApplInstall" = X,
-        codeunit "LAA_AIMatchMgt" = X,
-        codeunit "LAA_AIMatchContext" = X,
-        codeunit "LAA_AIMatchCapability" = X,
-        codeunit "LAA_AIMatchAgent" = X,
-        codeunit "LAA_AIMatchTool" = X,
+        // The AI codeunits are commented out in this variant, so they cannot be
+        // granted here:
+        // codeunit "LAA_AIMatchMgt" = X,
+        // codeunit "LAA_AIMatchContext" = X,
+        // codeunit "LAA_AIMatchCapability" = X,
+        // codeunit "LAA_AIMatchAgent" = X,
+        // codeunit "LAA_AIMatchTool" = X,
         codeunit "LAA_LedgerApplUpgrade" = X;
 }

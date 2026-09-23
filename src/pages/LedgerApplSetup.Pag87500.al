@@ -49,6 +49,15 @@ page 87500 "LAA_LedgerApplSetup"
                     Enabled = Rec."Enable Residual FIFO";
                 }
             }
+            // ================================================================
+            // DISABLED IN THE NO-AI VARIANT OF THIS EXTENSION.
+            //
+            // The underlying setup fields still exist on LAA_LedgerApplSetup so
+            // that the table schema is unchanged, but nothing reads them while
+            // Level 6 of the matching engine is commented out. The group is
+            // hidden rather than deleted so it can be restored with the layer.
+            // ================================================================
+            /*
             group(AIMatching)
             {
                 Caption = 'AI Matching', Comment = 'ESP="Conciliacion con IA"';
@@ -73,6 +82,7 @@ page 87500 "LAA_LedgerApplSetup"
                     Enabled = Rec."Enable AI Matching";
                 }
             }
+            */
             group(PaymentTolerance)
             {
                 Caption = 'Payment Tolerance (General Ledger Setup)', Comment = 'ESP="Tolerancia de pago (configuracion de contabilidad)"';
@@ -141,6 +151,14 @@ page 87500 "LAA_LedgerApplSetup"
                 Image = List;
                 RunObject = page "LAA_LedgerApplProposalList";
             }
+            // ================================================================
+            // DISABLED IN THE NO-AI VARIANT OF THIS EXTENSION.
+            //
+            // Registered the agent framework configuration through
+            // LAA_LedgerApplInstall.fRegisterAIConfiguration, which is itself
+            // commented out in this variant.
+            // ================================================================
+            /*
             action(LAA_RegisterAIAssistant)
             {
                 ApplicationArea = All;
@@ -157,6 +175,7 @@ page 87500 "LAA_LedgerApplSetup"
                     Message(TextAIRegisteredMsg);
                 end;
             }
+            */
         }
         area(Promoted)
         {
@@ -170,9 +189,13 @@ page 87500 "LAA_LedgerApplSetup"
                 actionref(LAA_ApplicationProposalsRef; LAA_ApplicationProposals)
                 {
                 }
+                // Disabled in the no-AI variant: the action it referenced is
+                // commented out above.
+                /*
                 actionref(LAA_RegisterAIAssistantRef; LAA_RegisterAIAssistant)
                 {
                 }
+                */
             }
         }
     }

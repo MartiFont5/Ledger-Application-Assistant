@@ -21,14 +21,7 @@
         "includeSourceInSymbolFile": true,
         "applyToDevExtension": false
     },
-    "dependencies": [
-        {
-            "id": "a97d6237-e1cd-4234-99c4-a578251c3b40",
-            "name": "AI Integration",
-            "publisher": "Deloitte",
-            "version": "28.0.3.11"
-        }
-    ],
+    "dependencies": [],
     "features": [
         "TranslationFile",
         "GenerateCaptions"

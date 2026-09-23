@@ -1,3 +1,12 @@
+// ============================================================================
+// DISABLED IN THE NO-AI VARIANT OF THIS EXTENSION.
+//
+// This object belongs to the AI matching layer and binds directly to the
+// Deloitte "AI Integration" dependency, which this variant does not declare in
+// app.json. The object is commented out rather than deleted: restore it by
+// re-adding the dependency and removing the /* ... */ markers below.
+// ============================================================================
+/*
 /// <summary>
 /// The AI case, held in memory for exactly one capability execution.
 ///
@@ -202,3 +211,4 @@ codeunit 87507 "LAA_AIMatchContext"
 
     #endregion
 }
+*/

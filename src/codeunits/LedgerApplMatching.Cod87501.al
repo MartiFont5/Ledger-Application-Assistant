@@ -6,8 +6,8 @@
 ///   2. Unique exact 1:1
 ///   3. Unique exact 1:N
 ///   4. Standard Business Central payment tolerance
-///   5. AI candidate classification
-///   6. AI assisted matching, only when it is enabled in the setup
+///   5. AI candidate classification (deterministic labelling only)
+///   6. AI assisted matching - DISABLED in this no-AI variant
 ///   7. Residual FIFO
 ///
 /// Once an amount has been reserved by a generated group it is no longer
@@ -15,7 +15,12 @@
 /// engine never matches across customers/vendors and never across currencies.
 ///
 /// Groups are always persisted through LAA_LedgerApplProposalMgt, so every group
-/// created here passes exactly the same validations as a manual or an AI change.
+/// created here passes exactly the same validations as a manual change.
+///
+/// Level 5 survives in this variant: it only labels what the deterministic
+/// levels could not resolve, using the local LAA_AICandidateType enum, and calls
+/// no model. Level 6, the only level that talked to the Deloitte "AI Integration"
+/// framework, is commented out.
 /// </summary>
 codeunit 87501 "LAA_LedgerApplMatching"
 {
@@ -66,11 +71,11 @@ codeunit 87501 "LAA_LedgerApplMatching"
 
         fGetCurrencyList(vlCurrencyList);
 
-        // Two passes, with the AI level in between. Everything deterministic runs
-        // first for every currency because the AI level has to commit: a call to a
-        // model is an HTTP callout and cannot be made with pending writes.
-        // Currencies never interact - every level filters by currency and every
-        // reservation is per entry - so splitting the loop changes no result.
+        // In the AI variant this ran as two passes, with the AI level in between,
+        // because that level had to commit before its HTTP callout. In this no-AI
+        // variant every level is deterministic, so the single loop below is the
+        // whole engine. Currencies never interact - every level filters by currency
+        // and every reservation is per entry.
         foreach vlCurrencyCode in vlCurrencyList do begin
             fMatchExplicitReference(prProposalHeader, vlCurrencyCode);
             fMatchExactPair(prProposalHeader, vlCurrencyCode);
@@ -79,7 +84,8 @@ codeunit 87501 "LAA_LedgerApplMatching"
             fClassifyAICandidates(vlCurrencyCode);
         end;
 
-        fAIMatching(prProposalHeader, vlCurrencyList);
+        // Disabled in the no-AI variant: see the Level 6 region below.
+        // fAIMatching(prProposalHeader, vlCurrencyList);
 
         if rSetup."Enable Residual FIFO" then
             foreach vlCurrencyCode in vlCurrencyList do
@@ -637,6 +643,21 @@ codeunit 87501 "LAA_LedgerApplMatching"
 
     #region Level 6 - AI assisted matching
 
+    // ========================================================================
+    // DISABLED IN THE NO-AI VARIANT OF THIS EXTENSION.
+    //
+    // This whole level drove the Deloitte "AI Integration" framework through
+    // LAA_AIMatchMgt, which this variant does not declare as a dependency. The
+    // helper procedures below (fCollectAICandidates, fIsAICandidateAmount,
+    // fAddCaseEntry, fApplyAIReservations) are used only from here, so the level
+    // is disabled as a whole. Level 5 still classifies the ambiguous cases and
+    // Level 7 (residual FIFO) still allocates what is left, so a proposal is
+    // generated exactly as before, minus the AI pass.
+    //
+    // Restore by re-adding the dependency and removing the /* ... */ markers.
+    // ========================================================================
+    /*
+
     /// <summary>
     /// Last chance before the residual FIFO. Every ambiguous case the level above
     /// classified is offered to the AI agent, which either recognizes the real
@@ -803,6 +824,7 @@ codeunit 87501 "LAA_LedgerApplMatching"
             fReserveAmount(pvEntryNos.Get(vlIndex), pvAmounts.Get(vlIndex));
     end;
 
+    */
     #endregion
 
     #region Level 7 - Residual FIFO
