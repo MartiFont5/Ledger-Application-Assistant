@@ -1,0 +1,24 @@
+# ========================================
+# AL/Business Central Build Artifacts
+# ========================================
+**/.alcache/
+**/.alpackages/
+**/.snapshots/
+**/.altemplates/
+**/.altestrunner/
+**/.vscode/.alcache/
+**/.vscode/.altemplates/
+*.app
+*.g.xlf
+
+# ========================================
+# RAD (Rapid Application Development) Files
+# ========================================
+rad.json
+.vscode/rad.json
+
+# ========================================
+# AL Compilation & Dependencies
+# ========================================
+.netpackages/
+.alcop/

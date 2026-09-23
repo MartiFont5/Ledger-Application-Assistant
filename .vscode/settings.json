@@ -1,0 +1,49 @@
+﻿{
+    // ========================================
+    // AL LANGUAGE EXTENSION
+    // Code Analysis & Quality
+    // ========================================
+    "al.enableCodeAnalysis": true,
+    "al.enableCodeActions": true,
+    
+    // Code Analyzers
+    "al.codeAnalyzers": [
+        "${CodeCop}",                              // Microsoft coding standards
+        "${UICop}",                                // UI/UX best practices
+        "${AppSourceCop}",                          // AppSource requirements
+        "${PerTenantExtensionCop}"
+    ],
+    
+    // Rule Set
+    "al.ruleSetPath": ".\\.vscode\\_Bc.ruleset.json",
+
+    // ========================================
+    // AL OBJECT DESIGNER
+    // ========================================
+    "alObjectDesigner.useCustomSnippets": true,
+
+    // ========================================
+    // GIT CONFIGURATION
+    // ========================================
+    "git.ignoreLimitWarning": true,
+
+    // ========================================
+    // CRS AL LANGUAGE EXTENSION
+    // File Naming & Organization
+    // ========================================
+    "CRS.AlSubFolderName": "src",
+    "CRS.ObjectNamePrefix": "LAA_",  // Prefix to remove from object names in file naming      
+    "CRS.ObjectNameSuffix": "",                
+    "CRS.RenameWithGit": true,                     // Use Git for renames (prevents history loss)
+    //TODO: Se comenta el autorename hasta saber como configurarlo para que la IA no se vuelva loca con las renombres.
+    //"CRS.OnSaveAlFileAction": "Rename",            // Auto-rename files on save
+    
+    // File Naming Patterns
+    "CRS.FileNamePattern": "<ObjectNameShort>.<ObjectTypeShortPascalCase><ObjectId>.al",
+    "CRS.FileNamePatternExtensions": "<ObjectNameShort>.<ObjectTypeShortPascalCase><ObjectId>.al",
+    "CRS.FileNamePatternPageCustomizations": "<ObjectNameShort>.<ObjectTypeShortPascalCase><ObjectId>.al",
+    
+    // Name Processing (ObjectNameShort already strips prefix/suffix)
+    //"CRS.RemoveSuffixFromFilename": true,
+    "CRS.RemovePrefixFromFilename": true,
+}

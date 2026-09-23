@@ -1,0 +1,36 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Excelia",
+            "environmentName": "DEMO",
+            "request": "launch",
+            "tenant": "8f644650-7303-49dd-91db-a8fc5eee741a",
+            "serverInstance": "8f644650-7303-49dd-91db-a8fc5eee741a",
+            "type": "al",
+            "environmentType": "Sandbox",
+            "startupObjectType": "Page",
+            "startupObjectId": 87152,
+            "breakOnError": "All",
+            "launchBrowser": true,
+            "enableLongRunningSqlStatements": true,
+            "enableSqlInformationDebugger": true,
+            "schemaUpdateMode": "ForceSync"
+        },
+        {
+            "name": "Sandbox_0409",
+            "environmentName": "Sandbox_0409",
+            "request": "launch",
+            "tenant": "14d51063-89e0-498d-8e2f-0d382b61baf8",
+            "serverInstance": "14d51063-89e0-498d-8e2f-0d382b61baf8",
+            "type": "al",
+            "environmentType": "Sandbox",
+            "startupObjectType": "Page",
+            "breakOnError": "All",
+            "launchBrowser": true,
+            "enableLongRunningSqlStatements": true,
+            "enableSqlInformationDebugger": true,
+            "schemaUpdateMode": "ForceSync"
+        }
+    ]
+}

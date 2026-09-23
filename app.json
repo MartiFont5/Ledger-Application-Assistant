@@ -1,0 +1,43 @@
+﻿{
+    "id": "ad21e40c-69b5-4ed5-9bf4-9d0d67294442",
+    "name": "Ledger Application Assistant",
+    "publisher": "Deloitte",
+    "brief": "Generate, review, adjust and post application proposals for customer and vendor ledger entries.",
+    "description": "Ledger Application Assistant (LAA) generates deterministic application proposals for open customer and vendor ledger entries, lets the user review and adjust the proposed application groups in a tree view, and posts each group using standard Business Central application logic.",
+    "version": "28.0.2.0",
+    "privacyStatement": "https://www.deloitte.com/es/es/legal/privacy.html",
+    "EULA": "https://www.deloitte.com/es/es/legal/legal.html",
+    "help": "https://www.deloitte.com/es/es/services/tax/services/business-process-solutions.html",
+    "contextSensitiveHelpUrl": "https://www.deloitte.com/es/es/services/tax/services/business-process-solutions.html",
+    "url": "https://www.deloitte.es",
+    "logo": "./logo/LogoPrimario-Deloitte.png",
+    "runtime": "17.0",
+    "application": "28.0.0.0",
+    "platform": "28.0.0.0",
+    "target": "Cloud",
+    "resourceExposurePolicy": {
+        "allowDebugging": true,
+        "allowDownloadingSource": false,
+        "includeSourceInSymbolFile": true,
+        "applyToDevExtension": false
+    },
+    "dependencies": [
+        {
+            "id": "a97d6237-e1cd-4234-99c4-a578251c3b40",
+            "name": "AI Integration",
+            "publisher": "Deloitte",
+            "version": "28.0.3.11"
+        }
+    ],
+    "features": [
+        "TranslationFile",
+        "GenerateCaptions"
+    ],
+    "screenshots": [],
+    "idRanges": [
+        {
+            "from": 87500,
+            "to": 87550
+        }
+    ]
+}

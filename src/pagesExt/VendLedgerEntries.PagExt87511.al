@@ -1,0 +1,83 @@
+/// <summary>
+/// Entry point of the assistant on the vendor side. The selected ledger entry is
+/// only used to identify the vendor: the proposal always analyses every eligible
+/// open entry of that vendor, not just the selected one.
+/// </summary>
+pageextension 87511 "LAA_VendLedgerEntriesExt" extends "Vendor Ledger Entries"
+{
+    actions
+    {
+        addlast(processing)
+        {
+            group(LAA_ApplicationAssistant)
+            {
+                Caption = 'Application Assistant', Comment = 'ESP="Asistente de liquidacion"';
+                Image = Apply;
+
+                action(LAA_CreateApplicationProposal)
+                {
+                    ApplicationArea = All;
+                    Caption = 'Create Application Proposal', Comment = 'ESP="Crear propuesta de liquidacion"';
+                    ToolTip = 'Analyse all eligible open ledger entries of this vendor and generate an application proposal that you can review, adjust and register.', Comment = 'ESP="Analiza todos los movimientos abiertos elegibles de este proveedor y genera una propuesta de liquidacion que puede revisar, ajustar y registrar."';
+                    Image = SuggestElectronicDocument;
+                    Visible = false;
+
+                    trigger OnAction()
+                    begin
+                        fLAA_CreateApplicationProposal();
+                    end;
+                }
+                action(LAA_ApplicationProposals)
+                {
+                    ApplicationArea = All;
+                    Caption = 'Application Proposals', Comment = 'ESP="Propuestas de liquidacion"';
+                    ToolTip = 'Open the application proposals that were generated for this vendor.', Comment = 'ESP="Abre las propuestas de liquidacion generadas para este proveedor."';
+                    Image = List;
+
+                    trigger OnAction()
+                    begin
+                        fLAA_ShowApplicationProposals();
+                    end;
+                }
+            }
+        }
+        addlast(Category_Process)
+        {
+            actionref(LAA_CreateApplicationProposalRef; LAA_CreateApplicationProposal)
+            {
+            }
+            actionref(LAA_ApplicationProposalsRef; LAA_ApplicationProposals)
+            {
+            }
+        }
+    }
+
+    local procedure fLAA_CreateApplicationProposal()
+    var
+        rlProposalLine: Record "LAA_LedgerApplProposalLine";
+        clProposalMgt: Codeunit "LAA_LedgerApplProposalMgt";
+        vlEntityType: Enum "LAA_EntityType";
+        vlProposalNo: Integer;
+    begin
+        Rec.TestField("Vendor No.");
+
+        vlProposalNo := clProposalMgt.fCreateProposalWithConfirmation(vlEntityType::Vendor, Rec."Vendor No.");
+        if vlProposalNo = 0 then
+            exit;
+
+        rlProposalLine.SetRange("Proposal No.", vlProposalNo);
+        Page.Run(Page::"LAA_LedgerApplProposalLines", rlProposalLine);
+    end;
+
+    local procedure fLAA_ShowApplicationProposals()
+    var
+        rlProposalHeader: Record "LAA_LedgerApplProposalHeader";
+        vlEntityType: Enum "LAA_EntityType";
+    begin
+        Rec.TestField("Vendor No.");
+
+        rlProposalHeader.SetRange("Entity Type", vlEntityType::Vendor);
+        rlProposalHeader.SetRange("Entity No.", Rec."Vendor No.");
+        Page.Run(Page::"LAA_LedgerApplProposalList", rlProposalHeader);
+    end;
+}

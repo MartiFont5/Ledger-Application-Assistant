@@ -1,0 +1,76 @@
+{
+    "name": "Ruleset Deloitte v1.0",
+    "description": "Personalización del analizador de código",
+    "rules": [
+        {
+            "id": "AS0054",
+            "action": "None",
+            "justification": "AppSourceCop not needed"
+        }, 
+        {
+            "id": "AS0084",
+            "action": "None",
+            "justification": " The ID range '[50001..50100]' is not valid. "
+        }, 
+        {
+            "id": "AS0092",
+            "action": "None",
+            "justification": "The app.json file must specify an Azure Application Insights resource with the property 'applicationInsightsConnectionString' for monitoring operations related to this extension. See https://learn.microsoft.com/dynamics365/business-central/dev-itpro/administration/telemetry-overview for additional information."
+        },
+        {
+            "id": "AA0072",
+            "action": "None",
+            "justification": "restriccion nombre."
+        },
+        {
+            "id": "AS0011",
+            "action": "Info",
+            "justification": "The identifier 'xxxx' must have at least one of the mandatory affixes 'DT' Table y Page Extensions"
+        },
+        {
+            "id": "AS0098",
+            "action": "Info",
+            "justification": "OJO !!!! The identifier 'xxx' must have at least one of the mandatory affixes 'DT' Report Extensions"
+        },
+        {
+            "id": "AS0079",
+            "action": "Info",
+            "justification": "mandatory sufix"
+        },
+        {
+            "id": "AA0215",
+            "action": "Hidden",
+            "justification": "The file _Return Receipt Line TableExt.al has an incorrect name. The valid name is ReturnReceiptLine.TableExt.al."
+        },
+        {
+            "id": "AA0074",
+            "action": "Info",
+            "justification": "label suffix"
+        },
+        {
+            "id": "AA0073",
+            "action": "None",
+            "justification": "CodeCop wants a 'Temp' prefix on temporary records. The Deloitte naming standard puts the type/scope prefix first and TEMP after it (rlTEMPCustomer), which this project follows."
+        },
+        {
+            "id": "AA0470",
+            "action": "None",
+            "justification": "comment placeholder."
+        },
+        {
+            "id": "AS0016",
+            "action": "Warning",
+            "justification": "Field with name 'GUID' must use the DataClassification property and its value should be different from CustomerContent."
+        },
+        {
+            "id": "AS0051",
+            "action": "Hidden",
+            "justification": "Not need solve"
+        },
+        {
+            "id": "PTE0026",
+            "action": "None",
+            "justification": "We just don't care."
+        }
+    ]
+}
