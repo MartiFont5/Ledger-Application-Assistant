@@ -34,7 +34,6 @@ permissionset 87500 "LAA_Admin"
         codeunit "LAA_AIMatchMgt" = X,
         codeunit "LAA_AIMatchContext" = X,
         codeunit "LAA_AIMatchCapability" = X,
-        codeunit "LAA_AIMatchAgent" = X,
         codeunit "LAA_AIMatchTool" = X,
         codeunit "LAA_LedgerApplUpgrade" = X;
 }

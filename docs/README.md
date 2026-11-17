@@ -65,7 +65,7 @@ and clicks "Create Application Proposal"
 | **Group-by-group posting** | Register one group or all pending groups; a group that fails does not undo the ones that worked |
 | **Obsolescence control** | A proposal is automatically retired when the ledger entries it was built on change |
 | **Proposal history** | Every proposal, registered or obsolete, stays available for consultation |
-| **AI candidate flag** | Marks the situations a future AI phase could resolve, so their real volume can be measured today |
+| **AI-assisted matching** | Optionally resolves ambiguous cases from document references before FIFO, using only preselected candidates |
 
 ---
 
@@ -94,7 +94,7 @@ and clicks "Create Application Proposal"
 | Applying across two currencies | — | Not allowed; each group is single-currency |
 | Applying across two customers/vendors | — | Not allowed |
 | Automatic posting without a user | — | Every registration is triggered by a person |
-| AI-assisted matching | — | Prepared for, not active |
+| AI-assisted matching | ✅ | Opt-in; requires AI Integration and direct tool execution |
 
 ---
 
@@ -120,7 +120,7 @@ Ledger Application Setup
 │   └── FIFO Default Confidence       → confidence shown on those groups
 │
 ├── AI Matching
-│   ├── Enable AI Matching            → let the AI agent try the ambiguous
+│   ├── Enable AI Matching            → let the AI workflow try the ambiguous
 │   │                                   cases before FIFO. Off by default
 │   ├── AI Multiple Exact Confidence  → confidence for a case where several
 │   │                                   candidates matched the amount
@@ -131,6 +131,14 @@ Ledger Application Setup
     └── The standard General Ledger Setup values, shown for convenience,
         with an action to run the standard change process
 ```
+
+### AI matching requirements
+
+- Install **AI Integration 28.1.0.0 or later**, enable it and configure an LLM endpoint in **AI Models Setup**.
+- Before enabling **Enable AI Matching**, enable **Direct Tool Execution** in **AI Models Setup**. This is a provisional requirement: if direct execution is off, proposal generation stops with a configuration error rather than silently skipping AI.
+- The assistant never changes that shared setting. If you cannot enable it, leave **Enable AI Matching** off to use deterministic matching.
+- **Register AI Assistant** registers the matching capability and workflow on demand; this also happens on install and upgrade. Review them on **AI Capabilities** and **AI Workflows**, not on an agent page.
+- If an AI case is unresolved or the model fails, its movements remain available for FIFO. Applications are still reviewed and posted by a person.
 
 ### Key concepts
 
@@ -161,7 +169,7 @@ They run in order. Once an amount is taken by a group, later rules no longer see
 
 > When two different matches are equally valid — two invoices of the same amount, or two exact combinations — the deterministic rules deliberately propose **neither**. Choosing at random would be worse than leaving the case to a person. The movement is flagged as an AI candidate.
 >
-> That flag is what rule 5 acts on. The AI is given only the movement and the handful of candidates the engine had already shortlisted, and it is asked one question: which of them do the documents actually identify? Amounts fitting is not an answer — they all fit already. When nothing distinguishes them the AI proposes nothing, and the case falls to FIFO exactly as before. Everything it does propose is validated again in AL before a group exists, and the user still reviews and posts it.
+> That flag is what rule 5 acts on. The AI is given only the movement and the handful of candidates the engine had already shortlisted, and it is asked one question: which of them do the documents actually identify? Amounts fitting is not an answer — they all fit already. When nothing distinguishes them the AI proposes nothing, and the case falls to FIFO exactly as before. Everything it proposes is validated before a group exists, and the user still reviews and posts it.
 
 ---
 

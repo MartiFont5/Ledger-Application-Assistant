@@ -52,7 +52,7 @@ codeunit 87500 "LAA_LedgerApplProposalMgt"
 
     /// <summary>
     /// Creates and generates a proposal without any user interaction, so the same
-    /// service can later be invoked from a job queue, an API or an agent workflow.
+    /// service can later be invoked from a job queue, an API or an AI workflow.
     /// Returns 0 when there is nothing to apply, because an empty proposal is
     /// never stored.
     /// </summary>
@@ -61,6 +61,7 @@ codeunit 87500 "LAA_LedgerApplProposalMgt"
         rlProposalHeader: Record "LAA_LedgerApplProposalHeader";
         rlActiveProposal: Record "LAA_LedgerApplProposalHeader";
         clMatching: Codeunit "LAA_LedgerApplMatching";
+        clAIMatchMgt: Codeunit "LAA_AIMatchMgt";
         vlActiveProposalReplaced: Boolean;
         TextActiveProposalExistsErr: Label 'Proposal %1 is still active for %2. Only one active proposal is allowed per customer or vendor.', Comment = '%1 = proposal number, %2 = entity number. ESP="La propuesta %1 sigue activa para %2. Solo se permite una propuesta activa por cliente o proveedor."';
     begin
@@ -70,6 +71,8 @@ codeunit 87500 "LAA_LedgerApplProposalMgt"
             fShowNothingToApply(pEntityType, pEntityNo, false);
             exit(0);
         end;
+
+        clAIMatchMgt.fTestDirectToolExecution();
 
         if fFindActiveProposal(pEntityType, pEntityNo, rlActiveProposal) then begin
             if not pvReplaceActiveProposal then

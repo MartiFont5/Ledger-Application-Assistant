@@ -5,6 +5,13 @@
 
 ---
 
+## Version 28.0.3.0 — 12/11/2026
+- AI-assisted matching now uses AI Integration 28.1.0.0 workflows and capabilities without agent setup.
+- **Breaking:** When AI matching is enabled, Direct Tool Execution must be enabled in AI Models Setup. Otherwise proposal generation stops with a configuration error. This is a provisional requirement; the assistant never changes the shared setting.
+- **Register AI Assistant** now registers the matching workflow and capability. Review, FIFO fallback for unresolved cases, and standard posting remain unchanged.
+
+---
+
 ## ✨ Version 28.0.2.0 — 17/09/2026
 - [Feature] **AI-assisted matching.** The cases the deterministic rules deliberately left unmatched — several invoices of the same amount, a reference the engine could not confirm, a balance already partly settled — are now offered to an AI agent before the residual FIFO runs. The agent is given only the movement and the candidates the engine had already shortlisted, and it answers one question: which of them do the documents actually identify?
 - [Feature] Groups the AI resolves are ordinary application groups, shown with match method **AI Assisted** and keeping the candidate type that explains which doubt was resolved. They are reviewed, adjusted and posted like any other group.

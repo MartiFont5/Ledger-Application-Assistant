@@ -145,13 +145,13 @@ page 87500 "LAA_LedgerApplSetup"
             {
                 ApplicationArea = All;
                 Caption = 'Register AI Assistant', Comment = 'ESP="Registrar asistente de IA"';
-                ToolTip = 'Register the agent, the capability, its instructions, the tool and the workflow of the AI matching layer in the agent framework. This runs automatically when the extension is installed or upgraded; use it after publishing a new version of the instructions, or to check that the registration is in place.', Comment = 'ESP="Registra el agente, la capacidad, sus instrucciones, la herramienta y el flujo de la capa de conciliacion con IA en el framework de agentes. Se ejecuta automaticamente al instalar o actualizar la extension; utilicelo despues de publicar una nueva version de las instrucciones, o para comprobar que el registro esta hecho."';
+                ToolTip = 'Register the AI matching capability, instructions, tool and workflow. This also runs on install and upgrade. Registration does not change Direct Tool Execution in AI Models Setup, which must be enabled before generating AI-assisted proposals.', Comment = 'ESP="Registra la capacidad, las instrucciones, la herramienta y el flujo de conciliacion con IA. Tambien se ejecuta al instalar y actualizar. El registro no modifica Ejecucion directa herramientas en Config. modelos IA, que debe activarse antes de generar propuestas asistidas por IA."';
                 Image = Setup;
 
                 trigger OnAction()
                 var
                     clInstall: Codeunit "LAA_LedgerApplInstall";
-                    TextAIRegisteredMsg: Label 'The AI assistant is registered. You can review it in the agent framework, on the AI Agents and AI Capabilities pages.', Comment = 'ESP="El asistente de IA esta registrado. Puede revisarlo en el framework de agentes, en las paginas Agentes IA y Capacidades IA."';
+                    TextAIRegisteredMsg: Label 'The AI matching capability and workflow are registered. You can review them on the AI Capabilities and AI Workflows pages. Before generating AI-assisted proposals, enable Direct Tool Execution in AI Models Setup. Registration does not change that shared setting.', Comment = 'ESP="La capacidad y el flujo de conciliacion con IA estan registrados. Puede revisarlos en las paginas Capacidades IA y Flujos IA. Antes de generar propuestas asistidas por IA, active Ejecucion directa herramientas en Config. modelos IA. El registro no modifica esa configuracion compartida."';
                 begin
                     clInstall.fRegisterAIConfiguration();
                     Message(TextAIRegisteredMsg);

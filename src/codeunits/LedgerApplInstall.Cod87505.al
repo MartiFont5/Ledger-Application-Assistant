@@ -21,7 +21,7 @@ codeunit 87505 "LAA_LedgerApplInstall"
     end;
 
     /// <summary>
-    /// Registers the AI agent, capability, prompt, tool and workflow in the agent
+    /// Registers the AI capability, prompt, tool and workflow in the AI
     /// framework. Shared by the install trigger, the upgrade codeunit and the
     /// setup page, because the framework only raises its own installation events
     /// when the framework itself is installed or upgraded.

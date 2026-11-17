@@ -1,5 +1,5 @@
 /// <summary>
-/// The single capability of the Ledger Application Assistant agent: decide which
+/// The single capability of the Ledger Application Assistant workflow: decide which
 /// of the preselected candidate movements should be applied against one already
 /// chosen applying movement.
 /// </summary>

@@ -639,13 +639,11 @@ codeunit 87501 "LAA_LedgerApplMatching"
 
     /// <summary>
     /// Last chance before the residual FIFO. Every ambiguous case the level above
-    /// classified is offered to the AI agent, which either recognizes the real
+    /// classified is offered to the AI workflow, which either recognizes the real
     /// counterparts from the documents themselves or leaves the movements alone.
     ///
-    /// Nothing here can break the generation of a proposal. When the feature is
-    /// off, when the framework is not configured, or when a single case fails for
-    /// any reason, the movements simply stay available and the residual FIFO runs
-    /// exactly as it always has.
+    /// Except for the explicit direct-execution prerequisite, unavailable or
+    /// unresolved cases leave the movements available for the residual FIFO.
     /// </summary>
     local procedure fAIMatching(var prProposalHeader: Record "LAA_LedgerApplProposalHeader"; var pvCurrencyList: List of [Code[10]])
     var

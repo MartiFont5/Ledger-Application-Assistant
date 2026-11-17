@@ -6,13 +6,11 @@
 /// engine builds it and the moment LAA_AIMatchTool is called back by the model,
 /// and it is cleared immediately afterwards.
 ///
-/// This works because the agent runs with Direct Tool Execution and the tool is
-/// Agent scoped, so the framework executes the tool inline, in the same session
-/// and call stack as the execution that was started by LAA_AIMatchMgt. A single
-/// instance codeunit therefore reaches the tool intact. If either flag were
-/// changed on the agent or on the tool the framework would dispatch the call to
-/// another session and this context would arrive empty, which the tool detects
-/// and reports instead of guessing.
+/// The foreground workflow needs Direct Tool Execution in AI Models Setup so
+/// the tool shares this session's memory. Agent scope prevents cross-company
+/// routing; it does not itself guarantee inline execution. LAA checks the shared
+/// setting before generating a proposal and before each case, without changing
+/// it. This is a provisional prerequisite, not a framework-wide requirement.
 ///
 /// The case is also the allowed candidate set: the tool accepts a ledger entry
 /// only if the same entry was part of the input handed to the model.

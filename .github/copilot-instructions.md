@@ -11,7 +11,7 @@ Generates, reviews and posts application proposals for open customer and vendor 
 - Language: AL
 
 ## Dependencies
-- `AI Integration` (Deloitte, `a97d6237-e1cd-4234-99c4-a578251c3b40`, 28.0.3.11) — the agent framework, used only by the AI matching layer in `src/ai/`.
+- `AI Integration` (Deloitte, `a97d6237-e1cd-4234-99c4-a578251c3b40`, 28.1.0.0) — the workflow/capability framework, used only by the AI matching layer in `src/ai/`.
 
 ## Documentation language
 English. Captions, tooltips and labels carry a Spanish translation in `Comment = 'ESP="..."'`.
@@ -25,7 +25,7 @@ English. Captions, tooltips and labels carry a Spanish translation in `Comment =
 | Pages `87500–87504` | `LAA_LedgerApplSetup`, `LAA_LedgerApplProposalList`, `LAA_LedgerApplProposalLines`, `LAA_ApplEntryCandidates` (87502 is free — the proposal card was removed) |
 | PageExtensions `87510–87511` | `LAA_CustLedgerEntriesExt` (page 25), `LAA_VendLedgerEntriesExt` (page 29) |
 | PermissionSets `87500–87501` | `LAA_Admin`, `LAA_User` |
-| AI layer, `src/ai/` | Codeunits `87506–87510`: `LAA_AIMatchMgt`, `LAA_AIMatchContext`, `LAA_AIMatchCapability`, `LAA_AIMatchAgent`, `LAA_AIMatchTool`. EnumExtensions `87517–87519` on `AI Agent`, `AI Capability`, `AI Tool Implementation` |
+| AI layer, `src/ai/` | Codeunits `87506–87508`, `87510`: `LAA_AIMatchMgt`, `LAA_AIMatchContext`, `LAA_AIMatchCapability`, `LAA_AIMatchTool`. EnumExtensions `87518–87519` on `AI Capability`, `AI Tool Implementation`. Agent objects `87509` / `87517` were removed outright. |
 
 ## Architecture rules
 These are the load-bearing decisions. Do not work around them.
@@ -71,7 +71,7 @@ A temporary record variable is its own table instance, so the engine never itera
 ## Deliberately absent
 Do not "fix" these by adding them — they were excluded by design:
 - Error history fields, retry counters, technical error tables. A failed registration is an execution result; the group simply stays pending.
-- Agent Operation, approval staging, or any other generic operation persistence of the AI framework. The AI capability stages nothing.
+- AI Operation, approval staging, or any other generic operation persistence of the AI framework. The AI capability stages nothing.
 - A currency code on the proposal header (a proposal may hold groups in several currencies).
 - Cross-currency and cross-entity application.
 - Event subscribers for obsolescence — the two source markers are enough.
@@ -83,10 +83,12 @@ Implemented. It runs between the AI candidate classification and the residual FI
 - **The deterministic engine is the owner, the AI is a guest.** `fGenerateProposal` calls `fAIMatching` and nothing else changes. A case the AI does not resolve costs nothing: the movements stay available and FIFO runs exactly as before.
 - **`fGenerateProposal` runs in two passes.** All deterministic levels for every currency, then the AI pass, then FIFO for every currency. The AI pass has to `Commit()` — an LLM call is an HTTP callout — so it must never be interleaved with FIFO. Currencies never interact, so the split changes no result. Do not merge the loops back.
 - **The AI tool creates groups through `LAA_LedgerApplProposalMgt` like everyone else** (`fCreateGroup` / `fAddAppliedEntry`), and `fApplyAIReservations` mirrors what it wrote onto the matching buffer. Without that mirror FIFO allocates the same amounts twice.
-- **The AI case is never persisted.** It lives in `LAA_AIMatchContext`, a `SingleInstance` codeunit, from the moment the engine builds it to the moment the tool reads it. That works only because the agent has `Direct Tool Execution = true` and the tool has `Scope = Agent`, which keep the tool inline in the same session. Both flags are load bearing; changing either silently breaks every case.
+- **The AI case is never persisted.** It lives in `LAA_AIMatchContext`, a `SingleInstance` codeunit. The workflow runs in the foreground and shared `AI Models Setup` must have `Direct Tool Execution = true` so the tool stays in the same session. `Scope = Agent` prevents cross-company routing but does not itself force inline execution.
+- **Direct execution is a provisional prerequisite, not a setting LAA owns.** `fTestDirectToolExecution` errors before proposal changes and before each case if AI Matching is on and existing framework setup has direct execution off. Keep this check outside the per-case `Codeunit.Run` fallback. Never change or temporarily toggle shared setup. With AI Matching off, this prerequisite does not apply.
+- **No agent layer or custom runtime is needed.** The capability installs its own workflow with `Max Iterations = 3`. The framework loads execution user input into the prompt; its default capability runtime supplies no additional context or gating.
 - **Success is read from the proposal, never from the model.** `fRunCase` looks the group up after the run, so anything that rolled the tool call back counts as no match.
-- **Registration does not happen by itself.** `OnInstallCapabilities` / `OnInstallAgents` are raised only when the *framework* is installed or upgraded, never when a dependent extension is, so subscribing to them is not enough. `LAA_LedgerApplInstall`, `LAA_LedgerApplUpgrade` and the **Register AI Assistant** setup action all call `fRegisterAIConfiguration`. After a force publish, which fires neither trigger, use the action.
-- **One case fails alone.** Every case runs through `Codeunit.Run`. No configuration, no model, no key — the user still gets the deterministic proposal.
+- **Registration does not happen by itself.** `OnInstallCapabilities` is raised only when the *framework* is installed or upgraded, never when a dependent extension is. `LAA_LedgerApplInstall`, `LAA_LedgerApplUpgrade` and **Register AI Assistant** all call `fRegisterAIConfiguration`, which invokes the capability installer. After a force publish, use the action. Registration does not change shared setup or enforce the direct-execution prerequisite.
+- **One case fails alone.** Every case runs through `Codeunit.Run`. Missing configuration, model failures and unresolved cases leave the deterministic proposal available. Direct execution being explicitly off with AI Matching on is the deliberate preflight-error exception.
 - **The model decides one thing only:** which of the preselected candidates the applying movement settles. It never chooses the applying movement, never sees a table, and never supplies a confidence.
 - No new tables, no new pages, no new enum values on LAA's own enums: `LAA_MatchMethod::"AI Assisted"` already existed. The only schema growth is four setup fields.
 

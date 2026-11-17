@@ -4,16 +4,16 @@
 /// was really created.
 ///
 /// It is the only place in the extension that knows the AI Integration framework
-/// exists as a runtime. Everything else either configures it (the capability and
-/// the agent) or is called back by it (the tool). The matching engine only asks
-/// this codeunit two questions: is AI matching available, and did this case end
-/// in a group.
+/// exists as a runtime. The capability configures it and the tool is called back
+/// by it. This codeunit also enforces the provisional direct-execution prerequisite
+/// before the per-case failure isolation.
 ///
 /// The codeunit has a TableNo so that one case can be executed through
 /// Codeunit.Run. That isolation is the whole error strategy of the AI layer: a
 /// framework that is not configured, a model that is unreachable, a tool call
 /// that is rejected - none of them may abort the generation of the proposal. The
-/// deterministic result the user would have got without AI is always produced.
+/// deterministic result is still produced, except when the direct-execution
+/// prerequisite is explicitly violated.
 /// </summary>
 codeunit 87506 "LAA_AIMatchMgt"
 {
@@ -32,29 +32,15 @@ codeunit 87506 "LAA_AIMatchMgt"
     #region Registration
 
     /// <summary>
-    /// Registers the capability, its prompt, the tool, the agent and the workflow.
-    ///
-    /// This has to exist because the framework raises OnInstallCapabilities and
-    /// OnInstallAgents only from its own install and upgrade triggers, and those
-    /// do not run when a dependent extension is installed. An extension that only
-    /// subscribes to them is therefore never registered at all: no capability, no
-    /// agent, no workflow, and every AI case fails silently.
-    ///
-    /// So the subscribers stay - they keep this extension in step when the
-    /// framework itself is reinstalled or upgraded - and this procedure calls the
-    /// same two installers from our own install, our own upgrade and the setup
-    /// page. Everything it does is idempotent.
-    ///
-    /// Order matters: the capability first, because the agent's capability
-    /// assignment and the workflow rows have table relations to it.
+    /// Registers the capability, prompt, tool and workflow idempotently.
+    /// The framework's installation event does not run when a dependent app is
+    /// installed, so our install, upgrade and setup action call this explicitly.
     /// </summary>
     internal procedure fRegisterAIConfiguration()
     var
         clCapability: Codeunit "LAA_AIMatchCapability";
-        clAgent: Codeunit "LAA_AIMatchAgent";
     begin
         clCapability.InstallCapability();
-        clAgent.Install();
     end;
 
     #endregion
@@ -63,7 +49,7 @@ codeunit 87506 "LAA_AIMatchMgt"
 
     /// <summary>
     /// Workflow that binds the single capability of the assistant. It is selected
-    /// explicitly on every execution, so the framework never routes this agent.
+    /// explicitly on every execution, never through chat routing.
     /// </summary>
     internal procedure fWorkflowId(): Code[50]
     begin
@@ -71,15 +57,39 @@ codeunit 87506 "LAA_AIMatchMgt"
     end;
 
     /// <summary>
-    /// True when a case may be sent to the model at all: the feature is switched
-    /// on in the setup of the assistant, the framework is enabled, and the agent
-    /// exists and is enabled. Nothing here fails: a missing configuration simply
-    /// means the deterministic pipeline runs as before.
+    /// Provisional: the case exists only in this session. Reject HTTP tool
+    /// dispatch without changing shared setup, outside the per-case fallback.
+    /// Missing framework setup retains the existing deterministic-only behavior.
+    /// </summary>
+    internal procedure fTestDirectToolExecution()
+    var
+        rlAIModelsSetup: Record "AI Models Setup";
+        rlSetup: Record "LAA_LedgerApplSetup";
+        vlErrorInfo: ErrorInfo;
+        TextDirectExecutionTitleErr: Label 'AI matching requires direct tool execution', Comment = 'ESP="La conciliacion con IA requiere ejecucion directa de herramientas"';
+        TextDirectExecutionErr: Label 'Enable Direct Tool Execution in AI Models Setup, or disable Enable AI Matching in Ledger Application Setup before generating a proposal. This provisional requirement keeps the AI case in the same session. LAA does not change the shared setting.', Comment = 'ESP="Active Ejecucion directa herramientas en Config. modelos IA, o desactive Activar conciliacion con IA en la configuracion de liquidacion antes de generar una propuesta. Este requisito provisional mantiene el caso de IA en la misma sesion. LAA no modifica la configuracion compartida."';
+    begin
+        rlSetup.fGetSetup();
+        if not rlSetup."Enable AI Matching" then
+            exit;
+        if not rlAIModelsSetup.Get() then
+            exit;
+        if rlAIModelsSetup."Direct Tool Execution" then
+            exit;
+
+        vlErrorInfo.Title := TextDirectExecutionTitleErr;
+        vlErrorInfo.Message := TextDirectExecutionErr;
+        Error(vlErrorInfo);
+    end;
+
+    /// <summary>
+    /// Missing configuration leaves the deterministic pipeline unchanged.
     /// </summary>
     internal procedure fIsAIMatchingEnabled(): Boolean
     var
-        rlAIAgent: Record "AI Agent";
+        rlAICapability: Record "AI Capability";
         rlAIModelsSetup: Record "AI Models Setup";
+        rlAIWorkflow: Record "AI Workflow";
         rlSetup: Record "LAA_LedgerApplSetup";
     begin
         rlSetup.fGetSetup();
@@ -91,10 +101,12 @@ codeunit 87506 "LAA_AIMatchMgt"
         if not rlAIModelsSetup.Enabled then
             exit(false);
 
-        if not rlAIAgent.Get(Enum::"AI Agent"::"LAA_LedgerApplicationAssistant") then
+        if not rlAICapability.Get(Enum::"AI Capability"::"LAA_AnalyzeLedgerApplMatch") then
+            exit(false);
+        if not rlAIWorkflow.Get(fWorkflowId()) then
             exit(false);
 
-        exit(rlAIAgent.Enabled);
+        exit(rlAIWorkflow.Enabled);
     end;
 
     /// <summary>
@@ -149,6 +161,8 @@ codeunit 87506 "LAA_AIMatchMgt"
     begin
         Clear(pvAppliedEntryNos);
         Clear(pvAppliedAmounts);
+
+        fTestDirectToolExecution();
 
         clContext.fSetCase(prProposalHeader."No.", pCandidateType, pApplyingEntryNo, pTEMPCaseEntry);
         if not clContext.fIsActive() then begin

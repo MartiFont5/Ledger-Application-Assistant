@@ -33,6 +33,5 @@ permissionset 87501 "LAA_User"
         codeunit "LAA_AIMatchMgt" = X,
         codeunit "LAA_AIMatchContext" = X,
         codeunit "LAA_AIMatchCapability" = X,
-        codeunit "LAA_AIMatchAgent" = X,
         codeunit "LAA_AIMatchTool" = X;
 }

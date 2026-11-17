@@ -26,7 +26,7 @@ If AI does not resolve the ambiguity:
 - Do nothing.
 - Allow the existing FIFO logic to continue unchanged.
 
-The implementation should be intentionally small and use the existing Agent Framework architecture.
+The implementation stays small and uses the existing workflow/capability framework architecture.
 
 ---
 
@@ -186,40 +186,42 @@ Existing Proposal Management persists it.
 
 ---
 
-## 6. Agent Framework Integration
+## 6. Workflow / Capability Framework Integration
 
 The framework is the Deloitte **AI Integration** extension:
 
 ```json
 { "id": "a97d6237-e1cd-4234-99c4-a578251c3b40",
-  "name": "AI Integration", "publisher": "Deloitte", "version": "28.0.3.11" }
+  "name": "AI Integration", "publisher": "Deloitte", "version": "28.1.0.0" }
 ```
 
 Its concepts, and how this feature uses them:
 
 | Framework concept | Used as |
 |---|---|
-| Agent (`enum 87151 "AI Agent"`, extensible) | One headless specialist agent, `LAA_LedgerApplicationAssistant` |
 | Capability (`enum 87160 "AI Capability"`, extensible) | One capability, `LAA_AnalyzeLedgerApplMatch` |
 | Tool implementation (`enum 87156 "AI Tool Implementation"`, extensible) | One tool, `LAA_ApplyAIMatch` |
-| Workflow (`AI Workflow` + step + step capability) | One workflow, `LAA_AI_MATCH`, one step, not router selectable |
+| Workflow (`AI Workflow` + step + step capability) | One workflow, `LAA_AI_MATCH`, one step, not router selectable, Max Iterations = 3 |
 | Execution | One per AI case, started explicitly, run in the foreground |
+| Capability runtime | Framework default: no extra context or gating; execution input is already loaded by the framework |
+
+The removed framework agent layer is not used. LAA deletes its agent codeunit
+and enum extension outright, with no legacy adapter or agent-data migration.
 
 Registration points actually published by the framework, on codeunit
 `"AI Installation"` (87160):
 
 - `OnInstallCapabilities` - capability master row, tool master row, prompt content, tool bindings
-- `OnInstallAgents` - agent, persona, instructions, capability assignment
 
 There is no installation event for workflows, so the three workflow rows are
 written directly, idempotently, in the same shape the framework uses for its own
-(`LAA_AIMatchAgent.fInstallWorkflow`).
+(`LAA_AIMatchCapability.fInstallWorkflow`).
 
 > Earlier drafts of this document referred to `OnInstallTools`. That event does
 > not exist. Tool master rows are installed from `OnInstallCapabilities` through
 > `AI Prompt Helper.InstallTool`.
 
-No dependency is taken on Agent Operation or on any generic operation
+No dependency is taken on AI Operation or on any generic operation
 persistence: the capability stages nothing and requires no approval.
 
 The Ledger Application Proposal module remains the functional owner of proposal data.
@@ -241,8 +243,8 @@ prompt an administrator has edited across an upgrade.
 
 Two settings differ from the framework defaults, and both are deliberate:
 
-- **Delegatable = false.** The capability never appears in the catalogue a chat
-  agent can delegate to. The only way in is the matching engine.
+- **Delegatable = false.** The capability is not exposed as a chat delegation
+  target. The matching engine starts its workflow explicitly.
 - **Force Tool Calls = false.** *No match* has to cost nothing: the model simply
   answers one sentence and the execution completes. Nobody reads that answer, so
   no terminal tool is bound and the feature does not depend on the install order
@@ -398,8 +400,9 @@ FV003 400
 ## 12. AI Input JSON
 
 Built by `LAA_AIMatchMgt.fBuildCaseJson` and stored on the execution with
-`AI Execution.SetUserInput`. The agent feeds it into the prompt from
-`AppendInputExecutionContext`.
+`AI Execution.SetUserInput`. The framework's
+`AI Process Execution Iteration.BuildPrompt` loads it directly into the prompt.
+The default capability runtime needs no custom context or gating hooks.
 
 ```json
 {
@@ -588,7 +591,7 @@ framework.
 
 The `"AI Function"` contract is JSON only. The `ContextJson` the framework builds
 (`AI Process Execution Tools.BuildToolContextJson`) carries framework identities
-only - tool code, execution id, iteration, conversation, capability, agent, work
+only - tool code, execution id, iteration, conversation, capability, work
 item, source record - and there is **no** hook for a subscriber payload. Adding
 one would mean changing the framework.
 
@@ -606,17 +609,27 @@ LAA_AIMatchMgt.fRunCase → Commit → Codeunit.Run → CreateWorkflowExecution
 LAA_AIMatchTool.CallTool
 ```
 
-Two settings make that inline dispatch true, and both are load bearing:
+Foreground execution and the following settings keep the tool in this session:
 
 | Setting | Where | Why |
 |---|---|---|
-| `Direct Tool Execution = true` | on the agent, set in `LAA_AIMatchAgent.Install` | otherwise `DispatchToolForScope` sends the call to the self hosted tool web service, in **another session**, where the singleton is empty |
-| `Scope = Agent` | on the tool, the default of `InstallTool` | otherwise, with multi environment on, the call is dispatched to the target environment |
+| `Direct Tool Execution = true` | shared AI Models Setup, configured by the administrator | otherwise `DispatchToolForScope` uses the self-hosted web service, in **another session**, where the singleton is empty |
+| `Scope = Agent` | explicitly installed on the tool | prevents cross-company dispatch; scope alone does not force inline execution |
+
+**Provisional prerequisite:** LAA never changes the shared direct-execution
+setting. With LAA AI Matching enabled and an existing framework setup that has
+direct execution off, `fTestDirectToolExecution` raises a localized configuration
+error before proposal changes and again before each case. The checks run outside
+the per-case failure isolation and cannot silently fall through to FIFO.
+With AI Matching off, this prerequisite does not apply. Missing framework setup
+retains the existing deterministic-only fallback. Registration itself does not
+enforce the prerequisite.
 
 The tool does not assume any of this silently. It checks that a case is active
 and that the execution's `sourceRecordId` is the proposal header of that case,
 and returns a plain rejection if either fails. A misconfiguration therefore
-surfaces as "no AI match" plus a readable reason, never as a wrong application.
+is rejected rather than being interpreted as a valid application. The explicit
+direct-execution-off configuration is rejected earlier by the preflight check.
 
 The allowed candidate set is then exact rather than a fallback: the tool accepts
 an entry number only if the same entry is in the case, which is by construction
@@ -708,7 +721,7 @@ Target behavior:
 
 The tool creates one application group for the current applying movement.
 
-Do not design an iterative agent loop unless the existing framework requires it structurally.
+Do not add an iterative reasoning loop beyond the existing workflow execution.
 
 Do not let the model incrementally construct the same group through repeated tool calls.
 
@@ -775,21 +788,18 @@ registers:
 
 - `LAA_AIMatchCapability` subscribes to `OnInstallCapabilities` and registers the
   capability, the tool master row, the prompt sections, the examples and the tool
-  binding.
-- `LAA_AIMatchAgent` subscribes to `OnInstallAgents` and registers the agent, its
-  persona and instructions, the capability assignment, `Direct Tool Execution`,
-  and the workflow rows.
+  binding, followed by the workflow rows with Max Iterations = 3.
 
 But subscribing is not enough, and this is the one thing about the framework that
-is easy to get wrong: **`OnInstallCapabilities` and `OnInstallAgents` are raised
+is easy to get wrong: **`OnInstallCapabilities` is raised
 only from `AI Installation.OnInstallAppPerCompany` and
 `AI Upgrade.OnUpgradePerCompany`** - that is, only when the *framework itself* is
-installed or upgraded. Neither fires when a dependent extension is installed, so
+installed or upgraded. It does not fire when a dependent extension is installed, so
 an extension that only subscribes is never registered at all.
 
-`LAA_AIMatchMgt.fRegisterAIConfiguration` therefore calls the same two installers
-directly, capability first (the agent assignment and the workflow rows have table
-relations to it), and is invoked from three places:
+`LAA_AIMatchMgt.fRegisterAIConfiguration` therefore calls the capability installer
+directly. The installer creates the capability before its workflow binding, and
+is invoked from three places:
 
 - `LAA_LedgerApplInstall.OnInstallAppPerCompany` - a first install
 - `LAA_LedgerApplUpgrade.OnUpgradePerCompany` - an upgrade of this extension,
@@ -797,7 +807,7 @@ relations to it), and is invoked from three places:
 - **Register AI Assistant** on the setup page - a manual re-run, which is what a
   developer needs after force publishing, since that fires neither trigger
 
-The subscribers stay as well, so the registration is also refreshed when the
+The subscriber stays as well, so the registration is also refreshed when the
 framework is reinstalled or upgraded.
 
 All of it is idempotent. An administrator's edits to the prompt survive, because
@@ -809,7 +819,8 @@ idempotent, so the setup itself needs nothing beyond the existing behaviour.
 
 Both permission sets include the framework's own `"AI Agents Framework"`
 permission set, because the capability executes in the session of the user who
-generates the proposal.
+generates the proposal. This historical permission-set name still exists in
+28.1.0.0; it does not mean LAA needs an agent.
 
 ## 25. No New Functional Tables or Pages
 
@@ -831,23 +842,21 @@ Avoid schema growth unless clearly required.
 
 ## 26. Expected Code Changes
 
-Everything new lives in `src/ai/`. The rest of the extension is touched in four
-places only.
+The AI integration lives in `src/ai/`; existing proposal creation also performs
+the provisional direct-execution preflight before changing proposal data.
 
-### New objects (`src/ai/`)
+### Current objects (`src/ai/`)
 
 | Object | ID | Role |
 |---|---|---|
 | `LAA_AIMatchMgt` | codeunit 87506 | Orchestrator. Availability, scope, confidence, case JSON, one isolated execution per case. `TableNo` so a case can run through `Codeunit.Run`. |
 | `LAA_AIMatchContext` | codeunit 87507 | The transient AI case and the allowed candidate set. `SingleInstance`. |
-| `LAA_AIMatchCapability` | codeunit 87508 | `implements "AI Interface Capability"`. Capability, prompt, tool binding. |
-| `LAA_AIMatchAgent` | codeunit 87509 | `implements "AI Interface Agent"`. Agent, workflow, prompt input. |
+| `LAA_AIMatchCapability` | codeunit 87508 | `implements "AI Interface Capability"`. Capability, prompt, tool binding and workflow installation. |
 | `LAA_AIMatchTool` | codeunit 87510 | `implements "AI Function"`. The `LAA_ApplyAIMatch` tool. |
-| `LAA_AIAgentExt` | enumextension 87517 | `"AI Agent"` → `LAA_LedgerApplicationAssistant` (value 87500) |
 | `LAA_AICapabilityExt` | enumextension 87518 | `"AI Capability"` → `LAA_AnalyzeLedgerApplMatch` (value 87500) |
 | `LAA_AIToolImplExt` | enumextension 87519 | `"AI Tool Implementation"` → `LAA_ApplyAIMatch` (value 87500) |
 
-The three framework facing codeunits are public because the framework
+The two framework facing codeunits are public because the framework
 instantiates them through its interfaces. `LAA_AIMatchMgt` and
 `LAA_AIMatchContext` keep `Access = Internal` like the rest of the extension.
 
@@ -855,15 +864,16 @@ instantiates them through its interfaces. `LAA_AIMatchMgt` and
 
 | File | Change |
 |---|---|
-| `app.json` | AI Integration dependency; version to 28.0.2.0 |
+| `app.json` | AI Integration minimum 28.1.0.0; LAA version 28.0.3.0 |
 | `LAA_LedgerApplSetup` (table 87500) | fields 30-33: `Enable AI Matching` and three confidences |
 | `LAA_LedgerApplSetup` (page 87500) | `group(AIMatching)`, the confidences `Enabled` by the toggle |
 | `LAA_LedgerApplMatching` (codeunit 87501) | split loop, and the `Level 6 - AI assisted matching` region: `fAIMatching`, `fAIMatchingForCurrency`, `fBuildAICase`, `fCollectAICandidates`, `fIsAICandidateAmount`, `fAddCaseEntry`, `fApplyAIReservations` |
 | `LAA_LedgerApplInstall` (codeunit 87505) | registers the AI configuration on install; `fRegisterAIConfiguration` shared with the upgrade and the page |
 | `LAA_LedgerApplUpgrade` (codeunit 87511) | **new.** Registers the AI configuration on upgrade |
 | `LAA_Admin`, `LAA_User` | the new codeunits, and `IncludedPermissionSets = "AI Agents Framework"` |
+| `LAA_LedgerApplProposalMgt` | direct-execution preflight before replacing or inserting a proposal |
 
-No change to `LAA_LedgerApplProposalMgt`: the AI tool calls `fCreateGroup` and
+The AI tool still calls `LAA_LedgerApplProposalMgt.fCreateGroup` and
 `fAddAppliedEntry` exactly as the deterministic levels do, and passes through
 every invariant they already enforce.
 
@@ -875,9 +885,9 @@ These required knowledge of the existing codebase. They are now decided.
 
 | Question | Decision |
 |---|---|
-| App dependency id/version | `a97d6237-e1cd-4234-99c4-a578251c3b40`, Deloitte AI Integration 28.0.3.11 |
+| App dependency id/version | `a97d6237-e1cd-4234-99c4-a578251c3b40`, Deloitte AI Integration 28.1.0.0 |
 | Capability registration API | `AI Prompt Helper.InsertCapability` / `InsertSection` / `InsertExample` / `InsertCapabilityTool`, from `OnInstallCapabilities` |
-| Which agent owns the capability | A new headless agent of its own. Reusing a chat agent would expose the capability to chat users and tie the feature to that agent's configuration |
+| Execution ownership | One non-router-selectable workflow owns the matching entry point; no agent exists |
 | Object names and IDs | See section 26 |
 | Install vs upgrade | One idempotent registration per object, re-run by the framework's `RefreshConfiguration` on upgrade |
 | How a capability is executed | `AI Process Execution.CreateWorkflowExecution(workflowId, sourceRecordId)` → `SetUserInput(json)` → `RunExecutionInForeground` |
@@ -886,8 +896,8 @@ These required knowledge of the existing codebase. They are now decided.
 | Where the input JSON comes from | The matching buffer, copied into the case, serialised by `fBuildCaseJson` |
 | Proposal Management procedure used | `fCreateGroup` + `fAddAppliedEntry`, the same pair the deterministic levels use |
 | How success is detected | The group is looked up in the proposal after the run, not reported by the model or the tool |
-| Enum extension approach | Three `enumextension` objects, values inside the 87500-87550 range |
-| Error handling | One `Codeunit.Run` per case; a rejection is returned to the model as JSON data, a failure degrades to "no AI match" |
+| Enum extension approach | Two `enumextension` objects, for capability and tool implementation; no agent enum extension |
+| Error handling | Direct-execution misconfiguration raises a preflight error. Otherwise one `Codeunit.Run` per case; a rejection is JSON data and an execution failure degrades to "no AI match" |
 | Telemetry | None. The extension has no telemetry at all and the AI layer does not introduce the first. Measurement is the `AI Candidate Type` and `Match Method` columns already on the proposal lines, plus the framework's own execution pages |
 | Test framework | None exists in this extension. Verification is the build plus the scenarios in section 28 |
 
@@ -933,13 +943,25 @@ Expected:
 ### Framework not configured
 
 Input:
-- `Enable AI Matching = true`, but no LLM endpoint key, or no Microsoft Entra
-  application user on the agent or in AI Models Setup.
+- `Enable AI Matching = true`, direct execution enabled, but no LLM endpoint key
+  or an unavailable model.
 
 Expected:
 - Proposal generation completes normally with FIFO groups.
 - No error dialog reaches the user.
 - This is the guard on the `Codeunit.Run` isolation in `fRunCase`.
+
+### Provisional direct-execution prerequisite
+
+Input:
+- `Enable AI Matching = true`, shared Direct Tool Execution off.
+- Run once without a proposal and once confirming replacement of an active one.
+
+Expected:
+- An actionable configuration error stops generation before proposal changes.
+- No new proposal or AI execution is created; the existing proposal stays intact.
+- Shared setup remains off. Registration still succeeds and does not change it.
+- With AI Matching off, direct execution being off does not block generation.
 
 ### Multiple Exact Matches – AI resolves
 
@@ -1111,4 +1133,4 @@ FIFO
 → Remains the deterministic fallback.
 ```
 
-The implementation should maximize reuse of the current deterministic solution and Agent Framework and avoid new persistence or architectural layers unless the existing codebase makes them necessary.
+The implementation should maximize reuse of the current deterministic solution and workflow/capability framework and avoid new persistence or architectural layers unless the existing codebase makes them necessary.

@@ -4,7 +4,7 @@
 /// movement, or decide that the evidence is not good enough and do nothing.
 ///
 /// The capability owns exactly one tool. It is not delegatable, so it never
-/// appears in the catalogue a chat agent can delegate to: the only way in is
+/// appears in the chat delegation catalogue: the only way in is
 /// LAA_AIMatchMgt, while a proposal is being generated.
 ///
 /// Force Tool Calls is deliberately off. "No match" is a first class outcome and
@@ -28,6 +28,7 @@ codeunit 87508 "LAA_AIMatchCapability" implements "AI Interface Capability"
     procedure InstallCapability()
     var
         clPromptMgt: Codeunit "AI Prompt Helper";
+        clAIMatchMgt: Codeunit "LAA_AIMatchMgt";
         vlCapability: Enum "AI Capability";
         vlShouldOverwrite: Boolean;
     begin
@@ -43,7 +44,8 @@ codeunit 87508 "LAA_AIMatchCapability" implements "AI Interface Capability"
             Enum::"AI Tool Implementation"::"LAA_ApplyAIMatch",
             Enum::"AI Tool Type"::Tool,
             'Applies the selected candidate movements against the applying movement of the ambiguous case currently being analyzed.',
-            1);   // One call per execution: the model may not build a group incrementally.
+            1,   // One call per execution: the model may not build a group incrementally.
+            Enum::"AI Tool Scope"::Agent);
 
         vlShouldOverwrite := clPromptMgt.ShouldOverwriteActiveVersion(vlCapability);
         clPromptMgt.BeginTemplateInstallation(vlCapability, vlShouldOverwrite);
@@ -66,6 +68,54 @@ codeunit 87508 "LAA_AIMatchCapability" implements "AI Interface Capability"
         clPromptMgt.SetCapabilityForceToolCalls(vlCapability, false);
         clPromptMgt.SetCapabilityTemperature(vlCapability, 0.1);
         clPromptMgt.SetCapabilitySupportsAttachments(vlCapability, false);
+
+        fInstallWorkflow(clAIMatchMgt.fWorkflowId(), vlCapability);
+    end;
+
+    local procedure fInstallWorkflow(pWorkflowId: Code[50]; pCapability: Enum "AI Capability")
+    var
+        rlStepCapability: Record "AI Workflow Step Capability";
+        rlWorkflow: Record "AI Workflow";
+        rlWorkflowStep: Record "AI Workflow Step";
+        vlStepId: Integer;
+        TextWorkflowDescriptionTok: Label 'Resolve one ambiguous ledger application case of a customer or vendor application proposal.', Locked = true;
+        TextStepDescriptionTok: Label 'Select the candidate movements the applying movement settles, or report that the evidence is insufficient.', Locked = true;
+    begin
+        if not rlWorkflow.Get(pWorkflowId) then begin
+            rlWorkflow.Init();
+            rlWorkflow."Workflow ID" := pWorkflowId;
+            rlWorkflow.Insert(true);
+        end;
+
+        rlWorkflow.Type := rlWorkflow.Type::Standard;
+        rlWorkflow.Description := TextWorkflowDescriptionTok;
+        rlWorkflow.Enabled := true;
+        rlWorkflow."Selectable By Router" := false;
+        rlWorkflow."Planning Type" := rlWorkflow."Planning Type"::"No Planning";
+        rlWorkflow."Start Capability" := pCapability;
+        rlWorkflow."Max Iterations" := 3;
+        rlWorkflow.Modify(true);
+
+        vlStepId := 10000;
+        if not rlWorkflowStep.Get(pWorkflowId, vlStepId) then begin
+            rlWorkflowStep.Init();
+            rlWorkflowStep."Workflow ID" := pWorkflowId;
+            rlWorkflowStep."Step ID" := vlStepId;
+            rlWorkflowStep.Insert(true);
+        end;
+
+        rlWorkflowStep.Description := TextStepDescriptionTok;
+        rlWorkflowStep."Approval Required" := false;
+        rlWorkflowStep.Enabled := true;
+        rlWorkflowStep.Modify(true);
+
+        if not rlStepCapability.Get(pWorkflowId, vlStepId, pCapability) then begin
+            rlStepCapability.Init();
+            rlStepCapability."Workflow ID" := pWorkflowId;
+            rlStepCapability."Step ID" := vlStepId;
+            rlStepCapability.Capability := pCapability;
+            rlStepCapability.Insert(true);
+        end;
     end;
 
     #region Prompt sections

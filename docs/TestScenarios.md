@@ -176,7 +176,7 @@ Unless a row says otherwise, run every scenario twice: once for a **customer** a
 
 ## 14. AI candidate classification
 
-No language model is called in the MVP. These scenarios only check the classification.
+Turn **Enable AI Matching** off for these scenarios. They check classification without calling a language model.
 
 | # | Setup | Expected classification |
 |---|-------|------------------------|
@@ -185,6 +185,27 @@ No language model is called in the MVP. These scenarios only check the classific
 | 14.3 | A movement partly allocated by an earlier rule, with a balance left | `Partial Match` |
 | 14.4 | A leftover balance with no relation to anything | `Unclassified Residual` |
 | 14.5 | A movement fully resolved by a deterministic rule | `None` |
+
+---
+
+## 15. Agent-free AI matching
+
+These are acceptance scenarios, not a record of executed tests. Run for both customers and vendors. Unless stated otherwise, enable AI matching and direct tool execution, configure a working model, and enable residual FIFO.
+
+| # | Setup | Action | Expected result |
+|---|-------|--------|-----------------|
+| 15.1 | AI matching off, direct tool execution off | Generate a proposal | Same deterministic groups, amounts and confidence as before; no direct-execution error |
+| 15.2 | AI matching on, direct tool execution off, no previous proposal | Generate a proposal | Configuration error explains how to enable direct execution or disable AI matching; no proposal or AI run is created; shared setup stays off |
+| 15.3 | Same as 15.2, with an active proposal | Confirm replacement | Same configuration error; existing proposal, groups and obsolete flag remain unchanged; no replacement is stored |
+| 15.4 | Direct execution off | Install, upgrade, or use Register AI Assistant twice | Registration succeeds without changing shared setup; one enabled matching workflow with one step and capability, no approval or chat routing, and a three-iteration limit |
+| 15.5 | Several equal-amount invoices; only one has distinctive textual evidence linking it to the payment, without a unique explicit-reference match | Generate a proposal | AI Assisted group selects only the identified candidate; candidate type and configured confidence are preserved |
+| 15.6 | Same-amount invoices with no distinguishing evidence | Generate a proposal | No AI group; ordinary FIFO fallback; plain-text no-match is valid |
+| 15.7 | Model returns an entry outside the offered candidates, a duplicate, a negative amount or an excessive amount | Generate a proposal | Invalid selection is rejected; no invalid or partial AI group survives; unresolved amounts remain available for FIFO |
+| 15.8 | Endpoint unavailable, key missing, or tool execution fails | Generate a proposal | That case does not abort proposal generation; deterministic groups remain and FIFO handles unresolved amounts |
+| 15.9 | Several ambiguous cases across two currencies | Generate a proposal | Deterministic matching runs first, then AI, then FIFO; no cross-currency groups or reservations from a previous case |
+| 15.10 | AI resolves only part of an available balance | Inspect all groups | FIFO sees the AI reservation; total proposed never exceeds available balance |
+| 15.11 | Missing framework setup or disabled matching workflow | Generate a proposal | Existing deterministic-only fallback; no agent configuration is required |
+| 15.12 | Proposal with AI Assisted and deterministic groups | Post / Post All | User-triggered standard posting remains unchanged; a failed group does not undo successful groups |
 
 ---
 

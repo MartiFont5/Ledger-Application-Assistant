@@ -52,7 +52,7 @@ table 87500 "LAA_LedgerApplSetup"
         field(30; "Enable AI Matching"; Boolean)
         {
             Caption = 'Enable AI Matching', Comment = 'ESP="Activar conciliacion con IA"';
-            ToolTip = 'Specifies whether the ambiguous cases left by the deterministic matching levels are sent to the AI agent before the residual FIFO allocation runs. The AI only chooses between candidates that the deterministic engine already preselected, and every proposal it makes is validated again before a group is created.', Comment = 'ESP="Especifica si los casos ambiguos que dejan los niveles de conciliacion deterministas se envian al agente de IA antes de ejecutar la asignacion FIFO residual. La IA solo elige entre candidatos que el motor determinista ya ha preseleccionado, y cada propuesta se valida de nuevo antes de crear un grupo."';
+            ToolTip = 'Specifies whether unresolved cases are sent to the AI matching workflow before residual FIFO. Only preselected candidates are considered and every match is validated. Provisionally requires Direct Tool Execution in AI Models Setup; if it is off, proposal generation stops with an error.', Comment = 'ESP="Especifica si los casos sin resolver se envian al flujo de conciliacion con IA antes del FIFO residual. Solo se consideran candidatos preseleccionados y se valida cada conciliacion. Requiere provisionalmente Ejecucion directa herramientas en Config. modelos IA; si esta desactivada, la generacion se detiene con un error."';
             DataClassification = CustomerContent;
             InitValue = false;
         }
